@@ -1,0 +1,13 @@
+[package]
+name = "trace_tool"
+version = "0.1.0"
+authors = ["Majid Valipour <majidvp@chromium.org>"]
+description="A simple commandline utility to view and filter chromium trace files"
+readme="README.md"
+edition = "2018"
+
+[dependencies]
+serde = "1"
+serde_derive = "*"
+serde_json="*"
+docopt = "1"
