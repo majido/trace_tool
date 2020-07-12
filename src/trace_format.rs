@@ -59,7 +59,7 @@ impl fmt::Display for ProcessInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{:6} - {:10} ({:3<} threads): {} ",
+            "{:6} - {:10} ({:>2} thread): {:.40} ",
             self.id,
             self.name,
             self.threads.len(),

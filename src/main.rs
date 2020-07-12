@@ -123,6 +123,6 @@ fn print_summary(trace: &Trace) {
 fn print(trace: &Trace) {
     print_summary(trace);
     for (i, p) in trace.processes().iter().enumerate() {
-        println!("{} ▶ {} ", i, p);
+        println!("{:>2} ▶ {} ", i, p);
     }
 }
