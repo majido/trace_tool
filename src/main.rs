@@ -6,15 +6,14 @@ extern crate docopt;
 extern crate serde;
 extern crate serde_json;
 
-use std::io;
 use std::fs;
+use std::io;
 
 use docopt::Docopt;
 use serde::Deserialize;
 
 mod trace_format;
 use trace_format::Trace;
-
 
 const USAGE: &'static str = "
 Trace Tool.
@@ -43,7 +42,6 @@ struct Args {
     flag_output: String,
     cmd_list: bool,
     cmd_filter: bool,
-    
 }
 
 fn main() -> Result<(), io::Error> {
@@ -54,16 +52,15 @@ fn main() -> Result<(), io::Error> {
     // give priority to help
     if args.flag_help {
         println!("{}", USAGE);
-        return Ok(())
+        return Ok(());
     } else if args.cmd_list {
         return list(&args.flag_input);
     } else if args.cmd_filter {
         return filter(args.arg_process, &args.flag_input, &args.flag_output);
     } else {
         println!("{}", USAGE);
-        return Ok(())
+        return Ok(());
     }
-
 }
 
 // Commands
@@ -104,7 +101,7 @@ fn read(file: &str) -> Result<Trace, io::Error> {
     Ok(trace)
 }
 
-fn write(trace: &Trace, file: &str) -> Result<(), io::Error>  {
+fn write(trace: &Trace, file: &str) -> Result<(), io::Error> {
     let content = serde_json::to_string(trace).expect("cannot serialize");
     fs::write(file, content)?;
 
@@ -113,10 +110,10 @@ fn write(trace: &Trace, file: &str) -> Result<(), io::Error>  {
 
 fn print_summary(trace: &Trace) {
     println!(
-        "{} with {} processes and {:?} timings",
+        "{} with {} processes and {:.2}s duration.",
         trace.info(),
         trace.processes().len(),
-        trace.timing()
+        trace.timings().duration.as_secs_f32()
     );
 }
 

@@ -1,6 +1,7 @@
 use std::fmt;
+use std::time::Duration;
 
-// Trace structures 
+// Trace structures
 
 // Generated using: https://transform.now.sh/json-to-rust-serde
 // Metadata has lots of fileds and they change over time. So keep it a generic
@@ -12,7 +13,7 @@ type Metadata = serde_json::Value;
 pub struct TraceEvents {
     pid: i64,
     tid: i64,
-    ts: i64,
+    ts: u64,
     ph: String,
     cat: String,
     #[serde(default)]
@@ -41,6 +42,13 @@ pub struct ProcessInfo {
     pub name: String,
     label: String,
     threads: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct Timing {
+    pub duration: Duration,
+    pub min_timestamp: u64,
+    pub max_timestamp: u64,
 }
 
 impl ProcessInfo {
@@ -72,7 +80,7 @@ impl Trace {
     pub fn info(&self) -> String {
         return format!(
             "captured={}, version={}",
-            value_to_string(&self.metadata["trace-capture-datetime"]), 
+            value_to_string(&self.metadata["trace-capture-datetime"]),
             value_to_string(&self.metadata["product-version"])
         );
     }
@@ -86,10 +94,36 @@ impl Trace {
     }
 
     // return a tuple that contain timestamp of earliest and latest events
-    pub fn timing(&self) -> (i64, i64){
-        let min = self.trace_events.iter().map(|ref event| event.ts).min().unwrap_or(0);
-        let max = self.trace_events.iter().map(|ref event| event.ts).max().unwrap_or(min);
+    fn timestamp_range(&self) -> (u64, u64) {
+        // Ignore zero timestamps since they don't add any value
+        let timestamp = |event: &TraceEvents| match event.ts {
+            0 => None,
+            ts => Some(ts),
+        };
+
+        let min = self
+            .trace_events
+            .iter()
+            .filter_map(timestamp)
+            .min()
+            .unwrap_or(0);
+        let max = self
+            .trace_events
+            .iter()
+            .filter_map(timestamp)
+            .max()
+            .unwrap_or(min);
         return (min, max);
+    }
+
+    pub fn timings(&self) -> Timing {
+        let range = self.timestamp_range();
+
+        Timing {
+            duration: Duration::from_micros(range.1 - range.0),
+            min_timestamp: range.1,
+            max_timestamp: range.0,
+        }
     }
 
     pub fn processes(&self) -> Vec<ProcessInfo> {
@@ -109,10 +143,12 @@ impl Trace {
         // TODO: doing multiple loops is inefficient.
         println!("{}", metadata_events.len());
         for p in &mut processes {
-            let label : String = metadata_events
+            let label: String = metadata_events
                 .iter()
                 .find(|&event| event.pid == p.id && event.name == "process_labels")
-                .map_or(String::new(), |&event| value_to_string(&event.args["labels"]));
+                .map_or(String::new(), |&event| {
+                    value_to_string(&event.args["labels"])
+                });
 
             let threads: Vec<String> = metadata_events
                 .iter()
@@ -133,7 +169,7 @@ impl Trace {
         let filtered_trace_events = self
             .trace_events
             .iter()
-            .filter(|&event|  filtered_process_ids.contains(&event.pid.to_string()))
+            .filter(|&event| filtered_process_ids.contains(&event.pid.to_string()))
             .cloned()
             .collect();
 
@@ -144,9 +180,9 @@ impl Trace {
     }
 }
 
-fn value_to_string(value : &serde_json::Value) -> String {
+fn value_to_string(value: &serde_json::Value) -> String {
     match value.as_str() {
         Some(s) => String::from(s),
-        None => String::new()
+        None => String::new(),
     }
 }
