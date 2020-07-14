@@ -67,7 +67,7 @@ impl fmt::Display for ProcessInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{:6} - {:10} ({:>2} thread): {:.40} ",
+            "{:6} - {:10} ({:>2} thread): {:.40}",
             self.id,
             self.name,
             self.threads.len(),
@@ -121,9 +121,35 @@ impl Trace {
 
         Timing {
             duration: Duration::from_micros(range.1 - range.0),
-            min_timestamp: range.1,
-            max_timestamp: range.0,
+            min_timestamp: range.0,
+            max_timestamp: range.1,
         }
+    }
+
+    // Return a vector where each entry 
+    pub fn timing_buckets(&self) -> Vec<u64>{
+        const NUM_BUCKETS: usize = 100;
+        let mut buckets = vec![0; NUM_BUCKETS];
+
+        let timings = self.timings();
+
+        let bucket_size: u64 = ((timings.max_timestamp - timings.min_timestamp) as f64 / NUM_BUCKETS as f64).ceil() as u64;
+
+        println!("{}", bucket_size);
+
+        let timestamp = |event: &TraceEvents| match event.ts {
+            0 => None,
+            ts => Some(ts),
+        };
+
+        self.trace_events
+        .iter()
+        .filter_map(timestamp)
+        .for_each(|ts| {
+            buckets[((ts - timings.min_timestamp)/ bucket_size) as usize] += 1
+        });
+
+        buckets
     }
 
     pub fn processes(&self) -> Vec<ProcessInfo> {

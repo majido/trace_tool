@@ -86,7 +86,7 @@ fn filter(
 }
 
 fn list(input_file: &str) -> Result<(), io::Error> {
-    let trace = read(input_file)?;
+    let trace = read(input_file)?; 
     print(&trace);
 
     Ok(())
@@ -115,6 +115,8 @@ fn print_summary(trace: &Trace) {
         trace.processes().len(),
         trace.timings().duration.as_secs_f32()
     );
+
+    println!("timing histogram: {:?}", trace.timing_buckets());
 }
 
 fn print(trace: &Trace) {
