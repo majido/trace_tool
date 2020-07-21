@@ -126,16 +126,11 @@ impl Trace {
         }
     }
 
-    // Return a vector where each entry 
-    pub fn timing_buckets(&self) -> Vec<u64>{
-        const NUM_BUCKETS: usize = 100;
-        let mut buckets = vec![0; NUM_BUCKETS];
-
+    // Return a vector where each entry
+    pub fn timing_buckets(&self) -> Histogram<u64> {
         let timings = self.timings();
 
-        let bucket_size: u64 = ((timings.max_timestamp - timings.min_timestamp) as f64 / NUM_BUCKETS as f64).ceil() as u64;
-
-        println!("{}", bucket_size);
+        let mut h: Histogram<u64> = Histogram::new(timings.min_timestamp, timings.max_timestamp);
 
         let timestamp = |event: &TraceEvents| match event.ts {
             0 => None,
@@ -143,13 +138,13 @@ impl Trace {
         };
 
         self.trace_events
-        .iter()
-        .filter_map(timestamp)
-        .for_each(|ts| {
-            buckets[((ts - timings.min_timestamp)/ bucket_size) as usize] += 1
-        });
+            .iter()
+            .filter_map(timestamp)
+            .for_each(|ts| {
+                h.add_sample(ts);
+            });
 
-        buckets
+        h
     }
 
     pub fn processes(&self) -> Vec<ProcessInfo> {
@@ -210,5 +205,72 @@ fn value_to_string(value: &serde_json::Value) -> String {
     match value.as_str() {
         Some(s) => String::from(s),
         None => String::new(),
+    }
+}
+
+
+// A simple generic Histogram.
+// This didn't need to be generic but wanted to find out how generics work in
+// rust.
+
+use std::ops::{DivAssign, SubAssign};
+use std::convert::{TryFrom, TryInto};
+
+const NUM_BUCKETS: usize = 100;
+
+#[derive(Debug)]
+pub struct Histogram<T> {
+    buckets: Vec<u64>, // count of entries in ranges: [0 - 1*BS), [1*BS-2*BS), .... [99*BS, 100BS)
+    min: T,            // max value we expect
+    max: T,            // min value we expect
+    bucket_size: T,    // size of each bucket
+}
+
+impl<T> Histogram<T>
+where
+    T: Copy,
+    T: DivAssign,
+    T: SubAssign,
+    T: TryFrom<usize>,
+    T: TryInto<usize>,
+{
+    pub fn new(min: T, max: T) -> Histogram<T> {
+        // compute bucket_size = (max - mix / num_bucket)
+        // TODO: figure out how to use - and / directly instead of -= and /=
+        // AFAICT, - and / return type is not necessarily T.
+        let bucket_nums = match T::try_from(NUM_BUCKETS) {
+            Ok(b) => b,
+            _ => unreachable!(),
+        };
+
+        let mut bucket_size: T = max;
+        bucket_size -= min;
+        bucket_size /= bucket_nums;
+        Histogram {
+            buckets: vec![0; NUM_BUCKETS + 1 as usize],
+            min,
+            max,
+            bucket_size,
+        }
+    }
+
+    pub fn add_sample(&mut self, sample: T) {
+        // compute bucket index = (sample - min) / bucket_size
+        let mut bucket_index: T = sample;
+        bucket_index -= self.min;
+        bucket_index /= self.bucket_size;
+
+        // convert into u8 so we can use an index to the buckets
+        let bucket_index_u8: usize = match bucket_index.try_into() {
+            Ok(b) => b,
+            _ => unreachable!(),
+        };
+
+        self.buckets[bucket_index_u8] += 1;
+    }
+
+    // TODO: implement Display trait instead
+    pub fn show(&self) -> String {
+        format!("histogram {:?}", self.buckets)
     }
 }
