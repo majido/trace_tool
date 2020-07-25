@@ -208,19 +208,44 @@ fn value_to_string(value: &serde_json::Value) -> String {
     }
 }
 
-
 // A simple generic Histogram.
 // This didn't need to be generic but wanted to find out how generics work in
 // rust.
 
+
+
+// A histogram is an object that aggregates statistics of a series of incoming
+// samples. 
+//
+// It works by assigning incoming sample values are assigned to a bucket and
+// increment that bucket count
+//
+// min, max: Minimum and maximum expected values. We use these values to compute
+// the bucket size. TODO: allow creating histograme with known bucket size and
+// without min and max!
+//
+// NUM_BUCKETS: Numer of buckets that the histogram uses. At the momemt this is
+// a constant value (100).
+//
+// Bucket size: We create all buckets in equal size. Each bucket reperest a a
+// range of values. Together they for a contigous range from [min, max]. We map
+// values smaller than min to first bucket and values equal or larger than max
+// to last bucket.
+//
+// For example if we have min=0, max=1000 with 100 buckets then ranges are: [0,
+// 10), [10-20), .... [990, 1000]
+use core::cmp::max;
+use core::cmp::min;
 use std::ops::{DivAssign, SubAssign};
 use std::convert::{TryFrom, TryInto};
 
+// Allow this to be passed into ctor.
 const NUM_BUCKETS: usize = 100;
 
 #[derive(Debug)]
 pub struct Histogram<T> {
-    buckets: Vec<u64>, // count of entries in ranges: [0 - 1*BS), [1*BS-2*BS), .... [99*BS, 100BS)
+    buckets: Vec<u64>, // count of entries in each buckets
+    sample_count: u64, // total could of entries
     min: T,            // max value we expect
     max: T,            // min value we expect
     bucket_size: T,    // size of each bucket
@@ -248,6 +273,7 @@ where
         bucket_size /= bucket_nums;
         Histogram {
             buckets: vec![0; NUM_BUCKETS + 1 as usize],
+            sample_count: 0,
             min,
             max,
             bucket_size,
@@ -266,11 +292,13 @@ where
             _ => unreachable!(),
         };
 
-        self.buckets[bucket_index_u8] += 1;
+        let index = min(max(0, bucket_index_u8), NUM_BUCKETS);
+        self.buckets[index] += 1;
+        self.sample_count += 1;
     }
 
     // TODO: implement Display trait instead
     pub fn show(&self) -> String {
-        format!("histogram {:?}", self.buckets)
+        format!("histogram with {:?} samples \n {:?}", self.sample_count, self.buckets)
     }
 }
