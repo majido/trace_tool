@@ -163,7 +163,6 @@ impl Trace {
             .collect();
 
         // TODO: doing multiple loops is inefficient.
-        println!("{}", metadata_events.len());
         for p in &mut processes {
             let label: String = metadata_events
                 .iter()
