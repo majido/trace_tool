@@ -24,7 +24,8 @@ pub struct TraceEvents {
     tdur: i64,
     tts: i64,
     s: String,
-    id: String,
+    // id can be either string or int, so leave it generic
+    id: serde_json::Value,
     scope: String,
 }
 
