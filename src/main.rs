@@ -86,7 +86,7 @@ fn filter(
 }
 
 fn list(input_file: &str) -> Result<(), io::Error> {
-    let trace = read(input_file)?; 
+    let trace = read(input_file)?;
     print(&trace);
 
     Ok(())

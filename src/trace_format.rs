@@ -212,10 +212,8 @@ fn value_to_string(value: &serde_json::Value) -> String {
 // This didn't need to be generic but wanted to find out how generics work in
 // rust.
 
-
-
 // A histogram is an object that aggregates statistics of a series of incoming
-// samples. 
+// samples.
 //
 // It works by assigning incoming sample values are assigned to a bucket and
 // increment that bucket count
@@ -236,8 +234,8 @@ fn value_to_string(value: &serde_json::Value) -> String {
 // 10), [10-20), .... [990, 1000]
 use core::cmp::max;
 use core::cmp::min;
-use std::ops::{DivAssign, SubAssign};
 use std::convert::{TryFrom, TryInto};
+use std::ops::{DivAssign, SubAssign};
 
 // Allow this to be passed into ctor.
 const NUM_BUCKETS: usize = 100;
@@ -299,6 +297,9 @@ where
 
     // TODO: implement Display trait instead
     pub fn show(&self) -> String {
-        format!("histogram with {:?} samples \n {:?}", self.sample_count, self.buckets)
+        format!(
+            "histogram with {:?} samples \n {:?}",
+            self.sample_count, self.buckets
+        )
     }
 }
