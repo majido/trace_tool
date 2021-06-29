@@ -240,6 +240,9 @@ use std::ops::{DivAssign, SubAssign};
 // Allow this to be passed into ctor.
 const NUM_BUCKETS: usize = 100;
 
+// The number of levels used to print the histograme
+const NUM_LEVELS: i32 = 10;
+
 #[derive(Debug)]
 pub struct Histogram<T> {
     buckets: Vec<u64>, // count of entries in each buckets
@@ -297,9 +300,30 @@ where
 
     // TODO: implement Display trait instead
     pub fn show(&self) -> String {
-        format!(
-            "histogram with {:?} samples \n {:?}",
-            self.sample_count, self.buckets
-        )
+        // normalize sample counts
+        let min = self.buckets.iter().min().unwrap_or(&0);
+        let max = self.buckets.iter().max().unwrap_or(&1);
+        let range = (max - min) as f64;
+        // The quantization levels
+        let levels = NUM_LEVELS;
+        let normalized: Vec<f64> = self
+            .buckets
+            .iter()
+            .map(|i| (i - min) as f64 / range)
+            .map(|f| (f * levels as f64).round())
+            .collect();
+
+        let lines: String = (0..levels)
+            .rev()
+            .map(|l| {
+                let line = normalized
+                    .iter()
+                    .map(|value| if value >= &f64::from(l) { '#' } else { ' ' })
+                    .collect::<String>();
+                return line;
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+        format!("{} samples:\n{}\n\n", self.sample_count, lines)
     }
 }

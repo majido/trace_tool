@@ -116,7 +116,7 @@ fn print_summary(trace: &Trace) {
         trace.timings().duration.as_secs_f32()
     );
 
-    println!("timing histogram: {:?}", trace.timing_buckets());
+    println!("Trace histograme: {}", trace.timing_buckets().show());
 }
 
 fn print(trace: &Trace) {
